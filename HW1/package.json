@@ -1,0 +1,26 @@
+{
+  "name": "tcg-hw1",
+  "version": "0.0.1",
+  "description": "Pick a single-user game (puzzle), describe the game, play the game and then write a program to solve.",
+  "main": "./src/game.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grass0916/NTU-1051-Theory-of-Computer-Games.git"
+  },
+  "keywords": [
+    "AI",
+    "puzzle",
+    "games",
+    "IQ",
+    "Fit"
+  ],
+  "author": "Ze-Hao Wang",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/grass0916/NTU-1051-Theory-of-Computer-Games/issues"
+  },
+  "homepage": "https://github.com/grass0916/NTU-1051-Theory-of-Computer-Games#readme"
+}

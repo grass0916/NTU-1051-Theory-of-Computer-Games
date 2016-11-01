@@ -179,54 +179,75 @@ class Nonogram {
 	public:
 		// Constructor.
 		Nonogram();
-		Nonogram(std::string inputFile, int columns, int rows);
+		Nonogram(std::string question, int columns, int rows);
 		// Return the empty board.
 		Board initialBoard();
 		// First iteration for DFS.
 		void DFS();
+		// Output the solution board.
+		void showSolution();
 
 	private:
 		int rows, columns;
 		std::string id;
 		// Store the clues.
 		ClueTable* clue;
+		// Store the solution board.
+		Board solution;
 		// Function overloading of DFS for recursing.
 		void DFS(Board current, int row, int stateIndex);
 };
 
 // 
 void Nonogram::DFS() {
-	this->clue->showContent();
+	// Output the clue table.
+	// this->clue->showContent();
+
 	// Initial board.
 	Board board = this->initialBoard();
 	this->DFS(board, 0, 0);
+
+	// Show the solution.
+	this->showSolution();	
 }
 
-// 
 void Nonogram::DFS(Board current, int row, int stateIndex) {
 	// Get the relative information about states of row.
 	Tuple tupleRow = this->clue->getTuple("row", row);
-	States states = this->clue->getClue(tupleRow);
+	States states  = this->clue->getClue(tupleRow);
 	// Replace the state by row.
 	current.replace(row * this->columns, this->columns, states[stateIndex]);
 
-	bool isAllowed = true;
+	bool isLegal = true;
 	// Check the board is legal or not when it is completed.
 	for (int column = 0; column < this->columns; column++) {
 		// Get the relative information about states of column.
+		// If boundary is 5, and tuple column is [1, 1],
+		// then states will be ['10100', '10010', '10001', '01010', '00101'].
 		Tuple tupleColumn = this->clue->getTuple("column", column);
-		States states = this->clue->getClue(tupleColumn);
-		// Check the column state is exist in clue table or not.
+		States states     = this->clue->getClue(tupleColumn);
+
+		// Extract the column state from the current board by specific column number.
 		State columnState;
-		std::copy_if(current.begin(), current.end(),
+		std::copy_if(
+			current.begin(),
+			current.end(),
 			std::back_inserter(columnState),
-			[iter = current.begin(), begin = current.begin(), columns = this->columns, column = column] (char c) mutable {
+			[ iter    = current.begin(),
+			  begin   = current.begin(),
+			  columns = this->columns,
+			  column  = column
+			] (char c) mutable {
 				return (std::distance(begin, iter++) % columns == column);
 			}
 		);	
 
-		// If
-		auto findIter = std::find_if(states.begin(), states.end(),
+		// Check the column state is exist in clue table or not.
+		// If current column state is '10---' and one of the clue table is '10100',
+		// then trimA is '10' cuts from '10---' and trimB is '10' cuts from '10100'.
+		auto findIter = std::find_if(
+			states.begin(),
+			states.end(),
 			[columnState] (const State& s) {
 				State trimA = columnState.substr(0, columnState.find_first_of("-"));
 				State trimB = s.substr(0, trimA.size());
@@ -236,31 +257,39 @@ void Nonogram::DFS(Board current, int row, int stateIndex) {
 
 		// Have not found the matched state.
 		if (findIter == states.end()) {
-			isAllowed = false;
+			isLegal = false;
 			// [Optimize I] This Line is the optimized condition.
 			break;
 		}
 	}
 
-	if (isAllowed && row+1 == this->rows) {
-		std::stringstream ss;
-		for (int i = 0; i < current.size(); i++) {
-			ss << current[i];
-			if ((i+1) % this->columns == 0) {
-				ss << "\n";
-			}
-		}
-		std::cout << ss.str() << "\n\n";
+	// Now is the last row.
+	if (isLegal && row+1 == this->rows) {
+		this->solution = current;
 	}
 
 	// Next recursion for depth.
-	if (isAllowed && row+1 < this->rows) {
+	if (isLegal && row+1 < this->rows && this->solution == "") {
 		this->DFS(current, row+1, 0);
 	}
 	// Next recursion for breadth.
-	if (stateIndex+1 < states.size()) {
+	if (stateIndex+1 < states.size() && this->solution == "") {
 		this->DFS(current, row, stateIndex+1);
 	}
+
+	return;
+}
+
+void Nonogram::showSolution() {
+	std::stringstream ss;
+	for (int i = 0; i < this->solution.size(); i++) {
+		ss << this->solution[i] << " ";
+		if ((i+1) % this->columns == 0) {
+			ss << "\n";
+		}
+	}
+	std::cout << ss.str() << "\n";
+
 	return;
 }
 
@@ -271,70 +300,90 @@ Board Nonogram::initialBoard() {
 // This is the constructor of Nonogram.
 // Set the clues information for the table.
 Nonogram::Nonogram() {}
-Nonogram::Nonogram(std::string inputFile, int columns, int rows) {
-	// Read text file
-	std::string inputFilePath = "./data/" + std::string(inputFile);
-	std::cout << inputFilePath << std::endl;
+Nonogram::Nonogram(std::string question, int columns, int rows) {
 	// Read sub-numbers each line.
-	std::ifstream file(inputFilePath.c_str());
 	std::string line;
-
-
-	// If this text file was opened fail.
-	if (! file.is_open()) {
-		std::cout << "Unable to open the file." << std::endl;
-		return;
-	}
+	std::istringstream lines(question);
 
 	// Store some information and create a prototype of clue table.
 	this->columns = columns, this->rows = rows;
 	this->clue = new ClueTable(columns, rows);
 
-	// First line is problem number.
-	std::getline(file, line);
-	this->id = std::string(line);
+	//
+	//this->id = std::string(line);
 
 	// Read and write into data structure each line.
 	for (int i = 0, times = columns + rows; i < times; i++) {
-		std::getline(file, line);
-		std::istringstream iss(line);
+		std::getline(lines, line);
+		std::istringstream numbers(line);
+
 		// Start from second line, these are the tuple of clues.
 		int number;
 		TupleUnit tuple;
-		while (iss >> number) {
+		while (numbers >> number) {
 			tuple.push_back(number);
 		}
 
 		// Determine to push into columns or rows.
 		this->clue->addClue((i < columns ? "column" : "row"), tuple);
 	}
-
-	// Close the file.
-	file.close();
 }
+
+std::string extractQuestion(std::ifstream& file, int lines) {
+	// If this text file was opened fail.
+	if (! file.is_open()) {
+		throw "ERR_OPEN_INPUT_DATA";
+	}
+
+	std::string line;
+	std::string question;
+
+	// First line is problem number.
+	std::getline(file, line);
+	// this->id = std::string(line);
+
+	// Read and write into data structure each line.
+	for (int i = 0; i < lines; i++) {
+		std::getline(file, line);
+		question += (line == "" ? "0" : line) + "\n";
+	}
+
+	return question;
+}
+
 
 int main (int argc, char* args[]) {
 	try {
-		if (argc <= 4) {
+		if (argc <= 5) {
 			throw "ERR_NOT_ENOUGH_ARGS";
 		}
 
-		std::string fileName(args[1]);
-		int columns = atoi(args[2]), rows = atoi(args[3]);
-		std::string method(args[4]);
+		std::string fileName(args[1]), method(args[5]);
+		int columns = atoi(args[2]), rows = atoi(args[3]), amount = atoi(args[4]);
 
-		// Create a nonogram
-		Nonogram nonogram(fileName, columns, rows);
+		// Read sub-strings each line.
+		std::ifstream file((std::string("./data/" + fileName)).c_str());
 
 		// Calculating the elapsed time.
 		ElapsedTime time;
-		time.setStart();
 
-		nonogram.DFS();
+		for (int i = 0; i < amount; i++) {
+			// Create a nonogram
+			Nonogram nonogram(extractQuestion(file, columns+rows), columns, rows);
 
-		// Print the elapsed time.
-		time.setEnd();	
-		std::cout << "Elapsed time is " << time.getElapsedTime() << " microseconds.\n";
+			// Set the time of starting to calculate the elapsed time.
+			time.setStart();
+
+			nonogram.DFS();
+
+			// Print the elapsed time.
+			time.setEnd();	
+			std::cout << "Elapsed time is " << time.getElapsedTime() << " microseconds ";
+			std::cout << "(" << (double) time.getElapsedTime() / 1000000 << " seconds).\n\n\n";
+		}
+
+		// Close the file.
+		file.close();
 
 	} catch (const char* e) {
 		std::cout << e << std::endl;

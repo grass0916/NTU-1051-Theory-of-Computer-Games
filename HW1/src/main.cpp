@@ -182,8 +182,8 @@ class Nonogram {
 		Nonogram(std::string question, int columns, int rows);
 		// Return the empty board.
 		Board initialBoard();
-		// First iteration for DFS.
-		void DFS();
+		// First iteration for DFS/BFS.
+		void Bruteforce(std::string method);
 		// Output the solution board.
 		void showSolution();
 
@@ -195,23 +195,23 @@ class Nonogram {
 		// Store the solution board.
 		Board solution;
 		// Function overloading of DFS for recursing.
-		void DFS(Board current, int row, int stateIndex);
+		void Bruteforce(Board current, int row, int stateIndex, std::string method);
 };
 
 // 
-void Nonogram::DFS() {
+void Nonogram::Bruteforce(std::string method) {
 	// Output the clue table.
 	// this->clue->showContent();
 
 	// Initial board.
 	Board board = this->initialBoard();
-	this->DFS(board, 0, 0);
+	this->Bruteforce(board, 0, 0, method);
 
 	// Show the solution.
-	this->showSolution();	
+	//this->showSolution();	
 }
 
-void Nonogram::DFS(Board current, int row, int stateIndex) {
+void Nonogram::Bruteforce(Board current, int row, int stateIndex, std::string method) {
 	// Get the relative information about states of row.
 	Tuple tupleRow = this->clue->getTuple("row", row);
 	States states  = this->clue->getClue(tupleRow);
@@ -268,13 +268,17 @@ void Nonogram::DFS(Board current, int row, int stateIndex) {
 		this->solution = current;
 	}
 
-	// Next recursion for depth.
-	if (isLegal && row+1 < this->rows && this->solution == "") {
-		this->DFS(current, row+1, 0);
+	// [DFS] Next recursion for depth.
+	if (method == "DFS" && isLegal && row+1 < this->rows && this->solution == "") {
+		this->Bruteforce(current, row+1, 0, method);
 	}
 	// Next recursion for breadth.
 	if (stateIndex+1 < states.size() && this->solution == "") {
-		this->DFS(current, row, stateIndex+1);
+		this->Bruteforce(current, row, stateIndex+1, method);
+	}
+	// [BFS] Next recursion for depth.
+	if (method == "BFS" && isLegal && row+1 < this->rows && this->solution == "") {
+		this->Bruteforce(current, row+1, 0, method);
 	}
 
 	return;
@@ -354,37 +358,50 @@ std::string extractQuestion(std::ifstream& file, int lines) {
 
 int main (int argc, char* args[]) {
 	try {
-		if (argc <= 5) {
+		if (argc <= 6) {
 			throw "ERR_NOT_ENOUGH_ARGS";
 		}
 
 		std::string fileName(args[1]), method(args[5]);
-		int columns = atoi(args[2]), rows = atoi(args[3]), amount = atoi(args[4]);
-
-		// Read sub-strings each line.
-		std::ifstream file((std::string("./data/" + fileName)).c_str());
+		int columns = atoi(args[2]), rows = atoi(args[3]);
+		int amount = atoi(args[4]), times = atoi(args[6]);
 
 		// Calculating the elapsed time.
 		ElapsedTime time;
 
-		for (int i = 0; i < amount; i++) {
-			// Create a nonogram
-			Nonogram nonogram(extractQuestion(file, columns+rows), columns, rows);
+		// Duplicate the executing to calculate the average.
+		for (int t = 0; t < times; t++) {
+			// Read sub-strings each line.
+			std::ifstream file((std::string("./data/" + fileName)).c_str());
+			// 
+			std::stringstream ss;
+			ss << "./debug/elapsed_" << method << "_(" << columns << "x" << rows << ")_q" << amount << "_t" << times << ".txt";
+			std::fstream elapsed(ss.str().c_str(), std::fstream::app);
+			// 'amount' is counts of the question.
+			for (int i = 0; i < amount; i++) {
+				// Create a nonogram
+				Nonogram nonogram(extractQuestion(file, columns+rows), columns, rows);
+				// Set the time of starting to calculate the elapsed time.
+				time.setStart();
+				// Main program.
+				if (method == "DFS" || method == "BFS") {
+					nonogram.Bruteforce(method);
+				}
+				// Print the elapsed time.
+				time.setEnd();
+				// Output the result.
+				elapsed << (i > 0 ? "," : "") << time.getElapsedTime();
+				// std::cout << "Elapsed time is " << time.getElapsedTime() << " microseconds ";
+				// std::cout << "(" << (double) time.getElapsedTime() / 1000000 << " seconds).\n\n\n";
+				std::cout << "Current [" << method << " " << (t+1) << "/" << times << "] " << (i+1) << "/" << amount << std::endl;
+			}
+			// This round is finish.
+			elapsed << std::endl;
+			elapsed.close();
 
-			// Set the time of starting to calculate the elapsed time.
-			time.setStart();
-
-			nonogram.DFS();
-
-			// Print the elapsed time.
-			time.setEnd();	
-			std::cout << "Elapsed time is " << time.getElapsedTime() << " microseconds ";
-			std::cout << "(" << (double) time.getElapsedTime() / 1000000 << " seconds).\n\n\n";
+			// Close the file.
+			file.close();
 		}
-
-		// Close the file.
-		file.close();
-
 	} catch (const char* e) {
 		std::cout << e << std::endl;
 	}

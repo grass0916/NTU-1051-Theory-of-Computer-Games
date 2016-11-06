@@ -13,9 +13,10 @@ g++ ./src/main.cpp ./src/elapsed_time.cpp -std=c++14 -o ./debug/out.o
 cd ./data
 rm tcga2016-question.txt tcga2016-solution.txt
 # <rows, column> <amount> <max_filled> <min_filled> <seed>
-python ./boardgen.py 5 10 0.5 0.3 12345
+python ./boardgen.py 15 1000 0.5 0.3 12345
 
 # Execute this program.
 cd ../
-# <input_data> <columns> <amount> <rows> <method>
-./debug/out.o tcga2016-question.txt 5 5 10 DFS
+# <input_data> <columns> <rows> <amount> <method>
+./debug/out.o tcga2016-question.txt 15 15 1000 DFS 10
+./debug/out.o tcga2016-question.txt 15 15 1000 BFS 10

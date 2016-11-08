@@ -38,13 +38,13 @@
 
 預先建表還有一項優勢，在遍歷 boards 的過程中同時考量 column clue，將不符合各 columns 的 boards 結束下一深度的遞迴動作，然而這些判斷計算同上小節理由，皆是大量且繁瑣的重複計算。而剪枝的重要程度相當地高，若能愈早將確立無用 branches 剪除，便能減少後續的大量計算。
 
-* ![Purning](./report-imgs/3-3-pruning.png)
+![Pruning](./report-imgs/3-3-pruning.png)
 
 ### 3-4. 提昇判定合理性的速度
 
 在進行當前 board 的 column 合理性的檢查時，倘若有出現任何不合理 state，將立即停止接下來的深度擴增。雖然這只是一個小動作，也增加了程式中的條件式，但帶來的效益卻相當地顯著。
 
-* ![Optimized](./report-imgs/3-4-optimized.png)
+![Optimized](./report-imgs/3-4-optimized.png)
 
 ## 4. 導入 heurist 的一些案例
 

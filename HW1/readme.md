@@ -28,11 +28,11 @@
 
 ### 3-2. 預先建表
 
-在建立 question 的同時，便會將提供的 clues 匯入 clue table 之中。舉例，一組 5\*5 數據的 column 分別為 `"1 2", "1 1", "", "5", "1 2"` 等五組 tuples，便會將 tuple `"1 2"` 計算出它可能的所有 states：`[10110, 10011, 01011]`，以下以此類推，且重複出現過的將會略過。在演算法行經一未知的 board 將不需要重新計算可能之 states，故可直接從 clue table 中進行調用。
+在建立 question 的同時，便會將提供的 clues 匯入 clue table 之中。舉例，一組 5\*5 數據的 column clue 分別為 `"1 1", "3", "5", "1 1", "2"` 等五組 tuples，便會將 tuple `"1 2"` 計算出它可能的所有 states：`[10100, 10010, 10001, ...]`，以下以此類推，且重複出現過的將會略過。在演算法行經一未知的 board 將不需要重新計算可能之 states，故可直接從 clue table 中進行調用。
+
+![Question](./report-imgs/3-2-5x5_question.png) ![Clue table](./report-imgs/3-2-clue_table.png)
 
 而這裡稍微提及，在本次的題目沒有處理非正方形盤面，但在本實驗環境因將 tuple 作為 key-by-value 的 key；states 作為 value，上述例子將可以紀錄成 `{ "5-1,2": ["10110", "10011", "01011"] }`，其中的 5 為 column 的格數（同 row 的數量），於是本方法不受 nonogram 盤面的形狀所限。
-
-* 手繪圖. clue table 的結構。
 
 ### 3-3. 依合理性進行剪枝
 

@@ -172,7 +172,6 @@ ClueTable::ClueTable(int columns, int rows) {
 }
 
 
-
 #define Board std::string
 
 class Nonogram {
@@ -184,6 +183,7 @@ class Nonogram {
 		Board initialBoard();
 		// First iteration for DFS/BFS.
 		void Bruteforce(std::string method);
+		void Heuristic(std::string method);
 		// Output the solution board.
 		void showSolution();
 
@@ -194,8 +194,9 @@ class Nonogram {
 		ClueTable* clue;
 		// Store the solution board.
 		Board solution;
-		// Function overloading of DFS for recursing.
+		// Function overloading of bruteforce and heuristic for recursing.
 		void Bruteforce(Board current, int row, int stateIndex, std::string method);
+		void Heuristic(Board current, int row, int stateIndex, std::string method);
 };
 
 // 
@@ -208,7 +209,20 @@ void Nonogram::Bruteforce(std::string method) {
 	this->Bruteforce(board, 0, 0, method);
 
 	// Show the solution.
-	//this->showSolution();	
+	// this->showSolution();	
+}
+
+// 
+void Nonogram::Heuristic(std::string method) {
+	// Output the clue table.
+	// this->clue->showContent();
+
+	// Initial board.
+	Board board = this->initialBoard();
+	this->Heuristic(board, 0, 0, method);
+
+	// Show the solution.
+	// this->showSolution();	
 }
 
 void Nonogram::Bruteforce(Board current, int row, int stateIndex, std::string method) {
@@ -254,7 +268,6 @@ void Nonogram::Bruteforce(Board current, int row, int stateIndex, std::string me
 				return trimA == trimB;
 			}
 		); 
-
 		// Have not found the matched state.
 		if (findIter == states.end()) {
 			isLegal = false;
@@ -283,6 +296,10 @@ void Nonogram::Bruteforce(Board current, int row, int stateIndex, std::string me
 
 	return;
 }
+
+void Nonogram::Heuristic(Board current, int row, int stateIndex, std::string method) {
+
+}	
 
 void Nonogram::showSolution() {
 	std::stringstream ss;
@@ -386,13 +403,13 @@ int main (int argc, char* args[]) {
 				// Main program.
 				if (method == "DFS" || method == "BFS") {
 					nonogram.Bruteforce(method);
+				} else if (method == "Heuristic-DFS") {
+					nonogram.Heuristic(method);
 				}
 				// Print the elapsed time.
 				time.setEnd();
 				// Output the result.
 				elapsed << (i > 0 ? "," : "") << time.getElapsedTime();
-				// std::cout << "Elapsed time is " << time.getElapsedTime() << " microseconds ";
-				// std::cout << "(" << (double) time.getElapsedTime() / 1000000 << " seconds).\n\n\n";
 				std::cout << "Current [" << method << " " << (t+1) << "/" << times << "] " << (i+1) << "/" << amount << std::endl;
 			}
 			// This round is finish.

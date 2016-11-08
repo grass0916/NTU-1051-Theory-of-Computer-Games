@@ -1,0 +1,20 @@
+<!DOCTYPE html><html lang="en"><head><title>Theory of Caomputer Game - HW1, Analysics of DFS & BFS in nonogram.</title><script type="text/javascript" src="./lib/chartist-js/chartist.min.js"></script><script type="text/javascript" src="./lib/chartist-js/chartist-plugin-legend.js"></script><link rel="stylesheet" type="text/css" href="./lib/chartist-js/chartist.min.css"><link rel="stylesheet" type="text/css" href="./lib/my-chartist.css"></head><body><div class="ct-chart"></div><!-- Launch the chart.--><script>// Import the data from NodeJS app.
+var rounds = [{"name":"15x15 BFS non-optimized","data":[24.696694333333333,73.919186,3.0446973333333336,1.298638,2.693468,1.3961316666666668,2.66589,50.05340566666666,17.110169,2.5027206666666664]},{"name":"15x15 BFS","data":[5.668506333333333,20.29742866666667,0.8319683333333334,0.4048026666666667,0.8516656666666667,0.38793,0.753584,10.720894333333334,5.742429333333333,0.7388436666666667]},{"name":"15x15 DFS non-optimized","data":[10.097245333333333,30.023472,3.8913013333333333,0.9604816666666667,1.762414,1.2291293333333333,10.892142666666667,14.489664666666666,12.310472666666666,5.577214]},{"name":"15x15 DFS","data":[2.090591,9.027714333333334,1.01742,0.293111,0.5978756666666666,0.20605566666666666,2.475952,3.346058,3.662789,1.6644326666666667]}];
+
+var data = {
+	// Means [0, 1, 2, 3, ..., N-1]
+	labels: Array.apply(null, { length: 10 }).map(Number.call, Number),
+	series: rounds
+};
+var options = {
+	axisX: {
+		// showLabel: false,
+		// showGrid: false
+	},
+	plugins: [
+		Chartist.plugins.legend({
+			position: 'bottom'
+		})
+	]
+};
+new Chartist.Bar('.ct-chart', data, options);</script></body></html>

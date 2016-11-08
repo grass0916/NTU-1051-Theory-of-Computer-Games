@@ -1,0 +1,34 @@
+doctype html
+html(lang='en')
+	head
+		title Theory of Caomputer Game - HW1, Analysics of DFS & BFS in nonogram.
+		script(type='text/javascript', src='./lib/chartist-js/chartist.min.js')
+		script(type='text/javascript', src='./lib/chartist-js/chartist-plugin-legend.js')
+		link(rel='stylesheet', type='text/css', href='./lib/chartist-js/chartist.min.css')
+		link(rel='stylesheet', type='text/css', href='./lib/my-chartist.css')
+	body
+		div.ct-chart
+
+		// Launch the chart.
+		script.
+			// Import the data from NodeJS app.
+			var rounds = !{JSON.stringify(rounds)};
+
+			var data = {
+				// Means [0, 1, 2, 3, ..., N-1]
+				labels: Array.apply(null, { length: !{amount} }).map(Number.call, Number),
+				series: rounds
+			};
+			var options = {
+				axisX: {
+					// showLabel: false,
+					// showGrid: false
+				},
+				plugins: [
+					Chartist.plugins.legend({
+						position: 'bottom'
+					})
+				]
+			};
+			new Chartist.Bar('.ct-chart', data, options);
+

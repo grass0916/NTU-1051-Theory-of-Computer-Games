@@ -32,7 +32,7 @@
 
 而這裡稍微提及，在本次的題目沒有處理非正方形盤面，但在本實驗環境因將 tuple 作為 key-by-value 的 key；states 作為 value，上述例子將可以紀錄成 `{ "5-1,2": ["10110", "10011", "01011"] }`，其中的 5 為 column 的格數（同 row 的數量），於是本方法不受 nonogram 盤面的形狀所限。
 
-![Question](./report-imgs/3-2-5x5_question.png)   ![Clue table](./report-imgs/3-2-clue_table.png)
+![Question](./report-imgs/3-2-5x5_question.png)  ![Clue table](./report-imgs/3-2-clue_table.png)
 
 ### 3-3. 依合理性進行剪枝
 

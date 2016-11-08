@@ -17,6 +17,6 @@ python ./boardgen.py 15 1000 0.5 0.3 12345
 
 # Execute this program.
 cd ../
-# <input_data> <columns> <rows> <amount> <method>
-./debug/out.o tcga2016-question.txt 15 15 1000 DFS 10
-./debug/out.o tcga2016-question.txt 15 15 1000 BFS 10
+# <input_data> <columns> <rows> <amount> <method> <times_for_average>
+./debug/out.o tcga2016-question.txt 15 15 25 DFS 10
+./debug/out.o tcga2016-question.txt 15 15 25 BFS 10

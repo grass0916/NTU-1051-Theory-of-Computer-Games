@@ -48,23 +48,18 @@
 
 ![Optimized](./report-imgs/3-4-optimized.png)
 
-## 4. 導入 heurist 的一些案例
-
-
-
-
-## 5. 編譯與執行方式
+## 4. 編譯與執行方式
 
 請參照 `code/shell.sh`，內已包含**編譯指令**、**執行方式**，若有需要修改盤面請參照註解之指示。
 
-### 5-1. 編譯方式
+### 4-1. 編譯方式
 
 ```
 $ cd ./code
 $ g++ ./src/main.cpp ./src/elapsed_time.cpp -std==c++11 -o ./debug/out.o
 ```
 
-### 5-2. 執行方式
+### 4-2. 執行方式
 
 ```
 // 請先確認同路徑之 ./data 含有指定檔名之 input 檔案。
@@ -73,7 +68,7 @@ $ cd ./code
 $ ./debug/out.o tcga2016-question.txt 15 15 25 DFS 10
 ```
 
-### 5-3. 圖表繪製
+### 4-3. 圖表繪製
 
 這裡我使用 Node.js + HTML5 進行圖表的呈現，前述章節出現的圖表即為擷圖，若有需要再現程式，請進行以下操作。
 

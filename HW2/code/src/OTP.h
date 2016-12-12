@@ -265,7 +265,7 @@ private:
 			}
 		}
 
-		// Update the current maximum.
+		// Choose the best win rate.
 		auto maxIter = std::max_element(
 			visitations.begin(), visitations.end(),
 			[] (Visitation const &vis1, Visitation const &vis2) { return vis1.wins / vis1.visits < vis2.wins / vis2.visits; }

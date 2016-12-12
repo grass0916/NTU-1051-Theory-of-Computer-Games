@@ -175,6 +175,14 @@ protected:
 	Salmon written here.
 */
 
+#define VISITS_LIMIT 1000
+#define UCB_CONSTANT 1.414
+
+#define XY2X(xy) (xy / 8)
+#define XY2Y(xy) (xy % 8)
+// UCB fomula: Wi / Ni + c * sqrt(log(N) / Ni)
+#define UCB(vis) ((! vis.visits) ? INFINITY : (double) vis.wins / vis.visits + UCB_CONSTANT * std::sqrt(std::log(VISITS_LIMIT) / vis.visits))
+
 struct Visitation {
 	// Next selected position.
 	int nextXY;
@@ -189,10 +197,10 @@ private:
     int do_genmove() override {
         int ML[64], *MLED(B.get_valid_move(ML));
 
-		// If tile is 'X': 1; tile is 'O': 2. Then transfer to 1 and -1.
+		// If tile is 'X': 1, 'O': 2. Then transfers to 1 or -1.
 		int myTile = B.get_my_tile() == 1 ? 1 : -1;
 
-		// Slected position, 0 ~ 63 and pass(64).
+		// Selected position, 0 ~ 63 and pass(64).
 		int selXY;
 
 		// Get the all possibile positions.
@@ -202,14 +210,9 @@ private:
 			// Create a new visitation.
 			Visitation vis;
 			vis.nextXY = posXY;
-			vis.visits = 0;
-			vis.wins   = 0;
+			vis.visits = vis.wins = 0;
 			visitations.push_back(vis);
-			// std::cout << posXY/8 << "," << posXY%8 << "   ";
 		}
-		// std::cout << "times: " << visitations.size() << "\n";
-
-		int VISITS_LIMIT = 200;
 
 		for (int i = 0; i < VISITS_LIMIT; i++) {
 			// Simulate a board.
@@ -224,43 +227,59 @@ private:
 				game.do_op(command.str().c_str(), obuf);
 			}
 
-			// [Selection] Using the UCB value.
-			// Calculate all UCB values.
-			int maxVisitXY = 64;
-			double maxUCB = 0;
-			for (Visitation vis : visitations) {
-				double valUCB = (vis.visits == 0) ? INFINITY : (double) vis.wins / vis.visits + 1.414 * std::log(VISITS_LIMIT) / vis.visits;
-				if (valUCB >= maxUCB) { maxVisitXY = vis.nextXY, maxUCB = valUCB; }
-			}
+			//======== [Selection] ======== //
+			// Calculate all UCB values, then choose the maximum.
+			auto maxIter = std::max_element(
+				visitations.begin(), visitations.end(),
+				[] (Visitation const &vis1, Visitation const &vis2) { return UCB(vis1) < UCB(vis2) ; }
+			);
+			selXY = visitations.begin() == visitations.end() ? 64 : (*maxIter).nextXY;
 
-			selXY = maxVisitXY;
-
-			// [Expansion] Import the selected position.
+			// ======== [Expansion] ======== //
+			// Import the selected position. Generate the string of command first.
 			std::stringstream command;
-			command << "play " << selXY/8 << " " << selXY%8;
+			command << "play " << XY2X(selXY) << " " << XY2Y(selXY);
+			// Execute the command for 'play'.
 			game.do_op(command.str().c_str(), obuf);
 
-			// [Simulation].
+			// ======== [Simulation] ======== //
+			// Use the native 'genmove' function to simulate.
 			for (int i = 0; i < 128; i++) {
+				// If the game is end, stop the simulation.
 				if (game.isGameOver()) { break; }
+				// Execute the command for 'genmove'.
 				game.do_op("genmove", obuf);
 			}
 
-			// [Propagation].
+			// ======== [Propagation] ======== //
+			// Get the final score of game, then record into node.
 			game.do_op("final_score", obuf);
 			int score = myTile * std::stoi(std::string(obuf).erase(0, 12));
 			for (Visitation &vis : visitations) {
 				if (vis.nextXY == selXY) {
 					vis.visits += 1;
-					vis.wins   += (score > 0 ? 1 : (score < 0 ? 0 : 0.5));
+					// Win: 1, tie: 0.5, lose: 0.
+					vis.wins += (score > 0 ? 1 : (score < 0 ? 0 : 0.5));
 					break;
 				}
 			}
 		}
 
+		// Update the current maximum.
+		auto maxIter = std::max_element(
+			visitations.begin(), visitations.end(),
+			[] (Visitation const &vis1, Visitation const &vis2) { return UCB(vis1) < UCB(vis2) ; }
+		);
+		selXY = visitations.begin() == visitations.end() ? 64 : (*maxIter).nextXY;
+
+		// Messages about simulations.
+		std::cout << "\n=== Multi-simulations in genmove ===\n";
 		for (Visitation vis : visitations) {
-			std::cout << vis.nextXY << ": (" << vis.wins << "/" << vis.visits << ")\n";
+			std::cout << "    " << vis.nextXY << ": (" << vis.wins << "/" << vis.visits << ")\n";
+			std::cout << "        UCB value: " << UCB(vis) << "\n";
 		}
+		std::cout << "\n  Final select: " << selXY << "(" << XY2X(selXY) << ", " << XY2Y(selXY) << ").\n";
+		std::cout << "====================================\n\n\n";
 
 		return selXY;
 	}

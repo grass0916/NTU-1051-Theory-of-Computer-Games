@@ -26,7 +26,7 @@ template<class RIT>RIT random_choice(RIT st, RIT ed){
 // Ranomly OTP.
 class ROTP {
 public:
-    ROTP():B(), HED(H) {
+    ROTP() : B(), HED(H) {
         do_init();
     }
 
@@ -268,7 +268,7 @@ private:
 		// Update the current maximum.
 		auto maxIter = std::max_element(
 			visitations.begin(), visitations.end(),
-			[] (Visitation const &vis1, Visitation const &vis2) { return UCB(vis1) < UCB(vis2) ; }
+			[] (Visitation const &vis1, Visitation const &vis2) { return vis1.wins / vis1.visits < vis2.wins / vis2.visits; }
 		);
 		selXY = visitations.begin() == visitations.end() ? 64 : (*maxIter).nextXY;
 

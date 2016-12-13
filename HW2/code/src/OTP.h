@@ -19,88 +19,88 @@ struct history {
 };
 
 template<class RIT>RIT random_choice(RIT st, RIT ed){
-    static std::mt19937 local_rand(std::random_device {} ());
-    return st+std::uniform_int_distribution<int> (0, ed-st-1) (local_rand);
+	static std::mt19937 local_rand(std::random_device {} ());
+	return st+std::uniform_int_distribution<int> (0, ed-st-1) (local_rand);
 }
 
 // Ranomly OTP.
 class ROTP {
 public:
-    ROTP() : B(), HED(H) {
-        do_init();
-    }
+	ROTP() : B(), HED(H) {
+		do_init();
+	}
 
 	// Used into simulations.
-    bool do_op(const char *cmd) {
-        switch(my_hash(cmd)) {
-            case my_hash("play"):{
-                int x, y;
-                sscanf(cmd, "%*s %d %d", &x, &y);
-                do_play(x, y, "cmd_play_1");
-                return true;
-            }
+	bool do_op(const char *cmd) {
+		switch(my_hash(cmd)) {
+			case my_hash("play"): {
+				int x, y;
+				sscanf(cmd, "%*s %d %d", &x, &y);
+				do_play(x, y, "cmd_play_1");
+				return true;
+			}
 
-            case my_hash("genmove"):{
-                int xy = do_genmove();
-                int x = xy/8, y = xy%8;
-                do_play(x, y, "cmd_genmove_1");
-                return true;
-            }
+			case my_hash("genmove"): {
+				int xy = do_genmove();
+				int x = xy/8, y = xy%8;
+				do_play(x, y, "cmd_genmove_1");
+				return true;
+			}
 
-            case my_hash("quit"):
-                return false;
+			case my_hash("quit"):
+				return false;
 
-            default:
-                return true;
-        }
-    }
+			default:
+				return true;
+		}
+	}
 
-    bool do_op(const char *cmd, char *out, FILE *myerr) {
-        switch(my_hash(cmd)) {
-            case my_hash("name"):
-                sprintf(out, "name M10415096");
-                return true;
+	bool do_op(const char *cmd, char *out, FILE *myerr) {
+		switch (my_hash(cmd)) {
+			case my_hash("name"):
+				sprintf(out, "name M10415096");
+				return true;
 
-            case my_hash("clear_board"):
-                do_init();
-                B.show_board(myerr);
-                sprintf(out, "clear_board");
-                return true;
+			case my_hash("clear_board"):
+				do_init();
+				B.show_board(myerr);
+				sprintf(out, "clear_board");
+				return true;
 
-            case my_hash("showboard"):
-                B.show_board(myerr);
-                sprintf(out, "showboard");
-                return true;
+			case my_hash("showboard"):
+				B.show_board(myerr);
+				sprintf(out, "showboard");
+				return true;
 
-            case my_hash("play"):{
-                int x, y;
-                sscanf(cmd, "%*s %d %d", &x, &y);
-                do_play(x, y, "cmd_play_2");
-                B.show_board(myerr);
-                sprintf(out, "play");
-                return true;
-            }
+			case my_hash("play"): {
+				int x, y;
+				sscanf(cmd, "%*s %d %d", &x, &y);
+				do_play(x, y, "cmd_play_2");
+				B.show_board(myerr);
+				sprintf(out, "play");
+				return true;
+			}
 
-            case my_hash("genmove"):{
-                int xy = do_genmove();
-                int x = xy/8, y = xy%8;
-                do_play(x, y, "cmd_genmove_2");
-                B.show_board(myerr);
-                sprintf(out, "genmove %d %d", x, y);
-                return true;
-            }
+			case my_hash("genmove"): {
+				int xy = do_genmove();
+				int x = xy/8, y = xy%8;
+				do_play(x, y, "cmd_genmove_2");
+				B.show_board(myerr);
+				sprintf(out, "genmove %d %d", x, y);
+				return true;
+			}
 
-            case my_hash("quit"):
-                sprintf(out, "quit");
-                return false;
+			case my_hash("quit"):
+				sprintf(out, "quit");
+				return false;
 
-            default:
-                sprintf(out, "unknown command");
-                return true;
-        }
-    }
+			default:
+				sprintf(out, "unknown command");
+				return true;
+		}
+	}
 
-    std::string get_html(unsigned, unsigned) const;
+	std::string get_html(unsigned, unsigned) const;
 
 	bool isGameOver() {
 		return this->B.is_game_over();
@@ -115,25 +115,25 @@ public:
 	}
 
 protected:
-    board B;
-    history H[128], *HED;
+	board B;
+	history H[128], *HED;
 
-    // Initialize in do_init.
-    void do_init() {
-        B = board();
-        HED = H;
+	// Initialize in do_init.
+	void do_init() {
+		B = board();
+		HED = H;
 		// Initial the History.
 		for (int i = 0; i < 128; i++) { H[i].x = -1, H[i].y = -1, H[i].pass = 0; }
-    }
+	}
 
-    // Randomly select a move in do_genmove.
-    virtual int do_genmove() {
-        int ML[64], *MLED(B.get_valid_move(ML));
-        return MLED == ML ? 64 : *random_choice(ML, MLED);
-    }
+	// Randomly select a move in do_genmove.
+	virtual int do_genmove() {
+		int ML[64], *MLED(B.get_valid_move(ML));
+		return MLED == ML ? 64 : *random_choice(ML, MLED);
+	}
 
-    // Update board and history in do_play
-    void do_play(int x, int y, std::string caller) {
+	// Update board and history in do_play
+	void do_play(int x, int y, std::string caller) {
 		if (HED != std::end(H) && B.is_game_over() == 0 && B.is_valid_move(x, y)) {
 			HED->x = x, HED->y = y;
 			HED->pass = B.get_pass();
@@ -144,7 +144,7 @@ protected:
 			ss << "Wrong play from '" << caller << "' on (" << x << ", " << y << ").\n";
 			fputs(ss.str().c_str(), stderr);
 		}
-    }
+	}
 };
 
 /*
@@ -173,7 +173,7 @@ protected:
 	} while (0)
 
 // UCB fomula: Wi / Ni + c * sqrt(log(N) / Ni)
-#define UCB(vis) ((! vis->visits) ? INFINITY : ((! vis->isAvailable) ? -INFINITY : vis->wins / vis->visits + UCB_CONSTANT * std::sqrt(std::log(VISITS_LIMIT) / vis->visits)))
+#define UCB(vis) ((! vis->visits) ? INFINITY : ((! vis->isAvailable) ? -INFINITY : vis->wins / vis->visits + UCB_CONSTANT * std::sqrt(std::log(i+1) / vis->visits)))
 
 struct Visitation {
 	// Is still available due to different round.
@@ -213,8 +213,8 @@ public:
 private:
     // Choose the best move in do_genmove.
     int do_genmove() override {
-		// If tile is 'X': 1, 'O': 2. Then transfers to 1 or -1.
-		int myTile = B.get_my_tile() == 1 ? 1 : -1;
+		// If tile is 'X': 1, 'O': 2. Then transfers to 1 or 0.
+		int myTile = B.get_my_tile() == 1 ? 1 : 0;
 		// Virtual root for this iteration.
 		Visitation *rt = this->root;
 
@@ -270,15 +270,21 @@ private:
 #ifdef DEBUG
 			std::cout << "\tWalked on: ";
 #endif
-			while (sn->isExpandable == false && sn->branches.size() > 0) {
+			for (int rd = 1; sn->isExpandable == false && sn->branches.size() > 0; rd++) {
 				// The the biggest UCB score from current depth.
-				// 這裡要改！！！！ 因為回合交換，min max tree.
-				auto maxIter = std::max_element(
-					sn->branches.begin(), sn->branches.end(),
-					[] (Visitation const *vis1, Visitation const *vis2) {
-						return UCB(vis1) < UCB(vis2);
-					}
-				);
+				auto maxIter = (rd % 2 == myTile) ?
+					std::max_element(
+						sn->branches.begin(), sn->branches.end(),
+						[] (Visitation const *vis1, Visitation const *vis2) {
+							return UCB(vis1) < UCB(vis2);
+						}
+					) : std::min_element(
+						sn->branches.begin(), sn->branches.end(),
+						[] (Visitation const *vis1, Visitation const *vis2) {
+							return UCB(vis1) > UCB(vis2);
+						}
+					)
+				;
 				// Update the selected node.
 				sn = *maxIter;
 				// Play the selected (x, y) on the simulated game.
@@ -329,7 +335,7 @@ private:
 
 			// ======== [Propagation] ======== //
 			// Get the final score of game, then record into node.
-			int score = myTile * game.getFinalScore();
+			int score = (myTile ? 1 : -1) * game.getFinalScore();
 			// Visits + 1; Win: 1, tie: 0.5, lose: 0.
 			double winsWeight = score > 0 ? 1 : (score < 0 ? 0 : 0.5);
 			for (Visitation *visPtr = sn; visPtr != NULL; visPtr = visPtr->parent) {

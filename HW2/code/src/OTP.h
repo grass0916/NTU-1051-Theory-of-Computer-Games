@@ -30,34 +30,27 @@ public:
         do_init();
     }
 
-    bool do_op(const char *cmd, char *out) {
+	// Used into simulations.
+    bool do_op(const char *cmd) {
         switch(my_hash(cmd)) {
             case my_hash("play"):{
                 int x, y;
                 sscanf(cmd, "%*s %d %d", &x, &y);
-                do_play(x, y);
-                sprintf(out, "play");
+                do_play(x, y, "cmd_play_1");
                 return true;
             }
 
             case my_hash("genmove"):{
                 int xy = do_genmove();
                 int x = xy/8, y = xy%8;
-                do_play(x, y);
-                sprintf(out, "genmove %d %d", x, y);
+                do_play(x, y, "cmd_genmove_1");
                 return true;
             }
 
-            case my_hash("final_score"):
-                sprintf(out, "final_score %d", B.get_score());
-                return true;
-
             case my_hash("quit"):
-                sprintf(out, "quit");
                 return false;
 
             default:
-                sprintf(out, "unknown command");
                 return true;
         }
     }
@@ -82,7 +75,7 @@ public:
             case my_hash("play"):{
                 int x, y;
                 sscanf(cmd, "%*s %d %d", &x, &y);
-                do_play(x, y);
+                do_play(x, y, "cmd_play_2");
                 B.show_board(myerr);
                 sprintf(out, "play");
                 return true;
@@ -91,20 +84,11 @@ public:
             case my_hash("genmove"):{
                 int xy = do_genmove();
                 int x = xy/8, y = xy%8;
-                do_play(x, y);
+                do_play(x, y, "cmd_genmove_2");
                 B.show_board(myerr);
                 sprintf(out, "genmove %d %d", x, y);
                 return true;
             }
-
-            case my_hash("undo"):
-                do_undo();
-                sprintf(out, "undo");
-                return true;
-
-            case my_hash("final_score"):
-                sprintf(out, "final_score %d", B.get_score());
-                return true;
 
             case my_hash("quit"):
                 sprintf(out, "quit");
@@ -122,6 +106,14 @@ public:
 		return this->B.is_game_over();
 	}
 
+	int getFinalScore() {
+		return this->B.get_score();
+	}
+
+	int* getValidMove(int* oit) {
+		return this->B.get_valid_move(oit);
+	}
+
 protected:
     board B;
     history H[128], *HED;
@@ -130,41 +122,28 @@ protected:
     void do_init() {
         B = board();
         HED = H;
-		// Initial the H.
+		// Initial the History.
 		for (int i = 0; i < 128; i++) { H[i].x = -1, H[i].y = -1, H[i].pass = 0; }
     }
 
-    /*
-		Randomly select a move in do_genmove.
-
-		Salmon written here.
-	*/
+    // Randomly select a move in do_genmove.
     virtual int do_genmove() {
         int ML[64], *MLED(B.get_valid_move(ML));
         return MLED == ML ? 64 : *random_choice(ML, MLED);
     }
 
     // Update board and history in do_play
-    void do_play(int x, int y) {
-        if (HED != std::end(H) && B.is_game_over() == 0 && B.is_valid_move(x, y)) {
-            HED->x = x;
-            HED->y = y;
-            HED->pass = B.get_pass();
-            HED->ed = B.update(x, y, HED->tiles_to_flip);
-            ++HED;
-        } else {
-            fputs("wrong play.\n", stderr);
-        }
-    }
-
-    // Undo board and history in do_undo
-    void do_undo(){
-        if (HED != H) {
-            --HED;
-            B.undo(HED->x, HED->y, HED->pass, HED->tiles_to_flip, HED->ed);
-        } else {
-            fputs("wrong undo.\n", stderr);
-        }
+    void do_play(int x, int y, std::string caller) {
+		if (HED != std::end(H) && B.is_game_over() == 0 && B.is_valid_move(x, y)) {
+			HED->x = x, HED->y = y;
+			HED->pass = B.get_pass();
+			HED->ed   = B.update(x, y, HED->tiles_to_flip);
+			++HED;
+		} else {
+			std::stringstream ss;
+			ss << "Wrong play from '" << caller << "' on (" << x << ", " << y << ").\n";
+			fputs(ss.str().c_str(), stderr);
+		}
     }
 };
 
@@ -175,112 +154,211 @@ protected:
 	Salmon written here.
 */
 
-#define VISITS_LIMIT 1000
+// #define DEBUG true
+
+#define VISITS_LIMIT 10000
 #define UCB_CONSTANT 1.414
 
 #define XY2X(xy) (xy / 8)
 #define XY2Y(xy) (xy % 8)
+
+#define Branches std::vector<Visitation*>
+
+// Play chess on the sepcific (x, y) of node.
+#define PLAY(n) \
+	do { \
+		std::stringstream command; \
+		command << "play " << XY2X(n->nextXY) << " " << XY2Y(n->nextXY); \
+		game.do_op(command.str().c_str()); \
+	} while (0)
+
 // UCB fomula: Wi / Ni + c * sqrt(log(N) / Ni)
-#define UCB(vis) ((! vis.visits) ? INFINITY : (double) vis.wins / vis.visits + UCB_CONSTANT * std::sqrt(std::log(VISITS_LIMIT) / vis.visits))
+#define UCB(vis) ((! vis->visits) ? INFINITY : ((! vis->isAvailable) ? -INFINITY : vis->wins / vis->visits + UCB_CONSTANT * std::sqrt(std::log(VISITS_LIMIT) / vis->visits)))
 
 struct Visitation {
+	// Is still available due to different round.
+	bool isAvailable;
 	// Next selected position.
 	int nextXY;
 	// Times of visiting and winning.
-	int visits;
-	double wins;
+	double visits, wins;
+	// Parent node.
+	Visitation *parent;
+	// Is still can be expand the children nodes.
+	bool isExpandable;
+	// Children nodes.
+	Branches branches;
+	// Quickly reference score. Like UCB score.
+	double score;
 };
 
 class OTP : public ROTP {
+public:
+	// The root of Monte Carlo Tree Search.
+	Visitation *root;
+
+	// Constructor.
+	OTP() : ROTP() {
+		this->root = new Visitation;
+		// Inintial for root.
+		this->root->isAvailable  = true;
+		this->root->isExpandable = true;
+		this->root->nextXY = -1;
+		this->root->visits = 0;
+		this->root->wins   = 0;
+		this->root->score  = 0;
+		this->root->parent = NULL;
+	}
+
 private:
     // Choose the best move in do_genmove.
     int do_genmove() override {
-        int ML[64], *MLED(B.get_valid_move(ML));
-
 		// If tile is 'X': 1, 'O': 2. Then transfers to 1 or -1.
 		int myTile = B.get_my_tile() == 1 ? 1 : -1;
-
-		// Selected position, 0 ~ 63 and pass(64).
-		int selXY;
-
-		// Get the all possibile positions.
-		std::vector<Visitation> visitations;
-		for (int *ptr = ML; ptr != MLED; ptr++) {
-			int posXY = *ptr;
-			// Create a new visitation.
-			Visitation vis;
-			vis.nextXY = posXY;
-			vis.visits = vis.wins = 0;
-			visitations.push_back(vis);
-		}
+		// Virtual root for this iteration.
+		Visitation *rt = this->root;
 
 		for (int i = 0; i < VISITS_LIMIT; i++) {
 			// Simulate a board.
 			ROTP game;
+			// Selected node.
+			Visitation *sn = rt = this->root;
 
+			// ======== [Preprocess] ======== //
 			// Import the history of current state.
-			char obuf[1024];
-			for (int i = 0; H[i].x > -1; i++) {
+#ifdef DEBUG
+			std::cout << "\n\tHistory: \n";
+#endif
+			for (int h = 0; H[h].x > -1; h++) {
+				// Play action for redoing history.
 				std::stringstream command;
-				command << "play " << this->H[i].x << " " << this->H[i].y;
-				// std::cout << "\t" << (i+1) << ": " << command.str().c_str() << "\n";
-				game.do_op(command.str().c_str(), obuf);
+				command << "play " << this->H[h].x << " " << this->H[h].y;
+				game.do_op(command.str().c_str());
+				// Update the root.
+				int wannaFind = H[h].x * 8 + H[h].y;
+				auto findIter = std::find_if(
+					sn->branches.begin(), sn->branches.end(),
+					[wannaFind] (Visitation const *vis) {
+						return vis->nextXY == wannaFind;
+					}
+				);
+				// If found the node, change the root for this iteration.
+				if (findIter != sn->branches.end()) {
+					// Update the root.
+					sn = rt = *findIter;
+				}
+				// If not found the node, create a new one and make the root point that.
+				else {
+					Visitation *vis = new Visitation;
+					vis->isAvailable = vis->isExpandable = true;
+					vis->nextXY = wannaFind;
+					vis->visits = vis->wins = vis->score = 0;
+					vis->parent = sn;
+					// Insert into the branches.
+					sn->branches.push_back(vis);
+					// Update the root.
+					sn = rt = vis;
+				}
+#ifdef DEBUG
+				std::cout << "\t\t" << (h+1) << ": " << command.str().c_str() << "\n";
+#endif
 			}
 
-			//======== [Selection] ======== //
-			// Calculate all UCB values, then choose the maximum.
-			auto maxIter = std::max_element(
-				visitations.begin(), visitations.end(),
-				[] (Visitation const &vis1, Visitation const &vis2) { return UCB(vis1) < UCB(vis2) ; }
-			);
-			selXY = visitations.begin() == visitations.end() ? 64 : (*maxIter).nextXY;
+
+			// ======== [Selection] ======== //
+			// Calculate all UCB score, then choose the maximum.
+#ifdef DEBUG
+			std::cout << "\tWalked on: ";
+#endif
+			while (sn->isExpandable == false && sn->branches.size() > 0) {
+				// The the biggest UCB score from current depth.
+				// 這裡要改！！！！ 因為回合交換，min max tree.
+				auto maxIter = std::max_element(
+					sn->branches.begin(), sn->branches.end(),
+					[] (Visitation const *vis1, Visitation const *vis2) {
+						return UCB(vis1) < UCB(vis2);
+					}
+				);
+				// Update the selected node.
+				sn = *maxIter;
+				// Play the selected (x, y) on the simulated game.
+				PLAY(sn);
+#ifdef DEBUG
+				std::cout << "->" << sn->nextXY;
+#endif
+			}
+#ifdef DEBUG
+			std::cout << "\n";
+#endif
 
 			// ======== [Expansion] ======== //
-			// Import the selected position. Generate the string of command first.
-			std::stringstream command;
-			command << "play " << XY2X(selXY) << " " << XY2Y(selXY);
-			// Execute the command for 'play'.
-			game.do_op(command.str().c_str(), obuf);
+			// Get the all possibile positions.
+        	int ML[64], *MLED(game.getValidMove(ML));
+			// Expand the branches.
+			int *ptr = ML + sn->branches.size();
+			// Create a new visitation.
+			if (ptr != MLED) {
+				Visitation *vis = new Visitation;
+				vis->isAvailable = vis->isExpandable = true;
+				vis->nextXY = (*ptr);
+				vis->visits = vis->wins = vis->score = 0;
+				vis->parent = sn;
+				// Insert into the branches.
+				sn->branches.push_back(vis);
+#ifdef DEBUG
+				std::cout << "\tExpand on " << sn->nextXY << " is '" << vis->nextXY << "'.\n";
+#endif
+				// Close this node to expand.
+				if (ptr+1 == MLED) sn->isExpandable = false;
+				// Update the selected node.
+				sn = sn->branches.back();
+				// Play the selected (x, y) on the simulated game.
+				PLAY(sn);
+			}
+
 
 			// ======== [Simulation] ======== //
 			// Use the native 'genmove' function to simulate.
-			for (int i = 0; i < 128; i++) {
+			for (int t = 0; t < 128; t++) {
 				// If the game is end, stop the simulation.
 				if (game.isGameOver()) { break; }
 				// Execute the command for 'genmove'.
-				game.do_op("genmove", obuf);
+				game.do_op("genmove");
 			}
+
 
 			// ======== [Propagation] ======== //
 			// Get the final score of game, then record into node.
-			game.do_op("final_score", obuf);
-			int score = myTile * std::stoi(std::string(obuf).erase(0, 12));
-			for (Visitation &vis : visitations) {
-				if (vis.nextXY == selXY) {
-					vis.visits += 1;
-					// Win: 1, tie: 0.5, lose: 0.
-					vis.wins += (score > 0 ? 1 : (score < 0 ? 0 : 0.5));
-					break;
-				}
+			int score = myTile * game.getFinalScore();
+			// Visits + 1; Win: 1, tie: 0.5, lose: 0.
+			double winsWeight = score > 0 ? 1 : (score < 0 ? 0 : 0.5);
+			for (Visitation *visPtr = sn; visPtr != NULL; visPtr = visPtr->parent) {
+				visPtr->visits += 1;
+				visPtr->wins   += winsWeight;
 			}
+#ifdef DEBUG
+			std::cout << "\tResult: " << sn->wins << " wins in " << sn->nextXY << ".\n";
+			std::cout << "\n==== End " << i+1 << " simulation ====\n";
+#endif
 		}
 
-		// Choose the best win rate.
+		// Choose the best winning rate.
 		auto maxIter = std::max_element(
-			visitations.begin(), visitations.end(),
-			[] (Visitation const &vis1, Visitation const &vis2) { return vis1.wins / vis1.visits < vis2.wins / vis2.visits; }
+			rt->branches.begin(), rt->branches.end(),
+			[] (Visitation const *vis1, Visitation const *vis2) {
+				return vis1->wins / vis1->visits < vis2->wins / vis2->visits;
+			}
 		);
-		selXY = visitations.begin() == visitations.end() ? 64 : (*maxIter).nextXY;
+		int bestXY = (rt->branches.begin() == rt->branches.end() ? 64 : (*maxIter)->nextXY);
 
 		// Messages about simulations.
 		std::cout << "\n=== Multi-simulations in genmove ===\n";
-		for (Visitation vis : visitations) {
-			std::cout << "    " << vis.nextXY << ": (" << vis.wins << "/" << vis.visits << ")\n";
-			std::cout << "        UCB value: " << UCB(vis) << "\n";
+		for (Visitation *vis : rt->branches) {
+			std::cout << "    " << vis->nextXY << ": (" << vis->wins << "/" << vis->visits << ")\n";
 		}
-		std::cout << "\n  Final select: " << selXY << "(" << XY2X(selXY) << ", " << XY2Y(selXY) << ").\n";
+		std::cout << "\n\tSelect: " << bestXY << "(" << XY2X(bestXY) << "," << XY2Y(bestXY) << ")\n";
 		std::cout << "====================================\n\n\n";
 
-		return selXY;
+		return bestXY;
 	}
 };

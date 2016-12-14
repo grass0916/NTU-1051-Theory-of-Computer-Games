@@ -173,7 +173,7 @@ protected:
 	} while (0)
 
 // UCB fomula: Wi / Ni + c * sqrt(log(N) / Ni)
-#define UCB(vis) ((! vis->visits) ? INFINITY : ((! vis->isAvailable) ? -INFINITY : vis->wins / vis->visits + UCB_CONSTANT * std::sqrt(std::log(i+1) / vis->visits)))
+#define UCB(vis, i) ((! vis->visits) ? INFINITY : ((! vis->isAvailable) ? -INFINITY : vis->wins / vis->visits + UCB_CONSTANT * std::sqrt(std::log(i+1) / vis->visits)))
 
 struct Visitation {
 	// Is still available due to different round.
@@ -212,7 +212,7 @@ public:
 
 private:
 	// Choose the best move in do_genmove.
-    int do_genmove() override {
+	int do_genmove() override {
 		// If tile is 'X': 1, 'O': 2. Then transfers to 1 or 0.
 		int myTile = B.get_my_tile() == 1 ? 1 : 0;
 		// Virtual root for this iteration.
@@ -275,13 +275,13 @@ private:
 				auto maxIter = (rd % 2 == myTile) ?
 					std::max_element(
 						sn->branches.begin(), sn->branches.end(),
-						[] (Visitation const *vis1, Visitation const *vis2) {
-							return UCB(vis1) < UCB(vis2);
+						[i] (Visitation const *vis1, Visitation const *vis2) {
+							return UCB(vis1, i) < UCB(vis2, i);
 						}
 					) : std::min_element(
 						sn->branches.begin(), sn->branches.end(),
-						[] (Visitation const *vis1, Visitation const *vis2) {
-							return UCB(vis1) > UCB(vis2);
+						[i] (Visitation const *vis1, Visitation const *vis2) {
+							return UCB(vis1, i) > UCB(vis2, i);
 						}
 					)
 				;

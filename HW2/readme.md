@@ -46,6 +46,25 @@ child.wins / child.visits + c * sqrt( log(N) / child.visits )
 
 UCB、UCT 基本上使用的結構大致相同，但做了些微修改，這裡將整合說明 UCT 的資料結構。
 
+```c++
+#define Branches std::vector<Visitation*>
+
+struct Visitation {
+	// Is still available due to different round.
+	bool isAvailable;
+	// Next selected position.
+	int nextXY;
+	// Times of visiting and winning.
+	double visits, wins;
+	// Parent node.
+	Visitation *parent;
+	// Is still can be expand the children nodes.
+	bool isExpandable;
+	// Children nodes.
+	Branches branches;
+};
+```
+
 ### 3-2. Preprocess in UCT
 
 與前章節的概念大致雷同，但因為目前為樹狀結構，可能會遇到未被模擬過的分支，所以在重現盤面遇到該情況時必須當下新增出該子節點。
@@ -137,18 +156,47 @@ while visPtr != NULL
 
 ## 4. 剪枝優化
 
+在計算 UCB score 時，加入判斷該節點的 isAvailable 是否為 true，若為 false 則讓得分變成負無窮大（-INFINITY）。然而，在 selection 的階段時，可以設定某迭代次數之倍數時進行剪枝。在本次作業中，我採用的是每 1,000 次迭代，將選擇數量不超過平均「目前跌代數 ÷ 選擇數」種者。將其 isAvailable 設定為 false，藉此達到減少不必要資源的模擬計算，以分配其它計算資源給勝率較高者。
 
+## 5. UCB 參數調整
 
-## 5. coef 參數調整
-
+本章節針對 UCB score 的常數 c 進行調整，就本次的實驗環境比較難以就遊戲結果之數據觀察出明顯現象，因為雙方的 AI 使用了**相同的演算法**，若能將其一方固定唯一不同的演算法，方可比較之。但仍可知道的是，若 c 較高，將會讓期望勝率較低者分配到愈多的模擬機會，反之亦然。
 
 ## 6. 實驗環境
 
+* CPU: Intel(R) Core(TM) i5-6400 CPU @ 2.70GHz
+* RAM: 8GiB DIMM Synchronous 2133 MHz x2
 
 ## 7. 編譯與執行方式
 
+### 7-1. 編譯方式
+
+請參照 `code/shell.sh` 或 `code/makefile`，內已包含編譯指令、執行方式。
+
+```
+$ cd ./code
+$ make
+```
+
+或是
+
+```
+$ cd ./code
+$ g++ ./src/judge.cpp -std=c++11 -O2 -Wall -o ./debug/judge
+$ g++ ./src/search.cpp -std=c++11 -O2 -Wall -o ./debug/search
+```
+### 7-2. 執行方式
+
+```
+$ ./debug/judge 7122 > ./debug/log_ju.txt &
+$ ./debug/search 127.0.0.1 7122 > ./debug/log_p1.txt &
+$ ./debug/search 127.0.0.1 7122 > ./debug/log_p2.txt &
+```
 
 ### 7-3. 開啟除錯模式
 
+請將 `code/src/OTP.h` 的 `// #defined DEBUG true` 的註解移除，並重新編譯。
 
+### 7-4. 備註部份
 
+若有需要修改模擬次數、UCB 常數或剪枝週期等，請參考 `OTP.h` Line 159~161。

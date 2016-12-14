@@ -156,8 +156,9 @@ protected:
 
 // #define DEBUG true
 
-#define VISITS_LIMIT 10000
+#define VISITS_LIMIT 100000
 #define UCB_CONSTANT 1.414
+#define PRUNE_ITERS 1000
 
 #define XY2X(xy) (xy / 8)
 #define XY2Y(xy) (xy % 8)
@@ -264,6 +265,15 @@ private:
 #endif
 			}
 
+			// Progress Pruning.
+			if (i % PRUNE_ITERS == 0 && i > 0) {
+				int threshold = i / sn->branches.size();
+				for (Visitation *vis : sn->branches) {
+					if (vis->visits < threshold) {
+						vis->isAvailable = false;
+					}
+				}
+			}
 
 			// ======== [Selection] ======== //
 			// Calculate all UCB score, then choose the maximum.

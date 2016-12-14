@@ -211,7 +211,7 @@ public:
 	}
 
 private:
-    // Choose the best move in do_genmove.
+	// Choose the best move in do_genmove.
     int do_genmove() override {
 		// If tile is 'X': 1, 'O': 2. Then transfers to 1 or 0.
 		int myTile = B.get_my_tile() == 1 ? 1 : 0;

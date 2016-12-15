@@ -175,6 +175,8 @@ protected:
 
 // UCB fomula: Wi / Ni + c * sqrt(log(N) / Ni)
 #define UCB(vis, i) ((! vis->visits) ? INFINITY : ((! vis->isAvailable) ? -INFINITY : vis->wins / vis->visits + UCB_CONSTANT * std::sqrt(std::log(i+1) / vis->visits)))
+// Domain knowledge for getting weight with specific position.
+#define KNOWLEDGE(vis) ((vis->nextXY == 0 || vis->nextXY == 7 || vis->nextXY == 56 || vis->nextXY == 63) ? 2 : 1)
 
 struct Visitation {
 	// Is still available due to different round.
@@ -286,12 +288,13 @@ private:
 					std::max_element(
 						sn->branches.begin(), sn->branches.end(),
 						[i] (Visitation const *vis1, Visitation const *vis2) {
-							return UCB(vis1, i) < UCB(vis2, i);
+							// Add the domain knowledge, the weights for different XY.
+							return UCB(vis1, i) * KNOWLEDGE(vis1) < UCB(vis2, i) * KNOWLEDGE(vis2);
 						}
 					) : std::min_element(
 						sn->branches.begin(), sn->branches.end(),
 						[i] (Visitation const *vis1, Visitation const *vis2) {
-							return UCB(vis1, i) > UCB(vis2, i);
+							return UCB(vis1, i) * KNOWLEDGE(vis1) > UCB(vis2, i) * KNOWLEDGE(vis2);
 						}
 					)
 				;
